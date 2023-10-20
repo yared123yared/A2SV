@@ -1,53 +1,75 @@
+import 'package:final_assesment/domain/domain.dart';
+import 'package:final_assesment/presentation/blocs/blocs.dart';
 import 'package:final_assesment/utils/icons.dart';
+import 'package:final_assesment/utils/utils.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-class WeatherScreen extends StatelessWidget {
-  const WeatherScreen({super.key});
+class WeatherScreen extends StatefulWidget {
+  final WeatherModel weatherData;
+  final bool isFavorite;
+  const WeatherScreen(
+      {super.key, required this.weatherData,required this.isFavorite});
+
+  @override
+  State<WeatherScreen> createState() => _WeatherScreenState();
+}
+
+class _WeatherScreenState extends State<WeatherScreen> {
+  bool _isFavorite = false;
+
+  @override
+  void initState() {
+    _isFavorite = widget.isFavorite;
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
-    var listDateTimes = [
-      DateTime.now().subtract(const Duration(days: 6)),
-      DateTime.now().subtract(const Duration(days: 6)),
-      DateTime.now().subtract(const Duration(days: 6)),
-      DateTime.now().subtract(const Duration(days: 6)),
-      DateTime.now().subtract(const Duration(days: 6)),
-      DateTime.now().subtract(const Duration(days: 6)),
-      DateTime.now()
-    ];
-
-    print(listDateTimes);
     return Scaffold(
       appBar: AppBar(
-        leading: const SizedBox(),
+        automaticallyImplyLeading: false,
         flexibleSpace: Padding(
           padding: const EdgeInsets.only(left: 27, right: 42),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               GestureDetector(
-                  onTap: () => Navigator.pop(context),
+                  onTap: () {
+                    
+                    context.read<WeatherBloc>().add(FetchFavoriteWeatherData());
+                    Navigator.pop(context);
+                  },
                   child: SvgPicture.asset(backIcon)),
-              const Column(
+              Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    'New Mexico',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Color(0xFF211772),
-                      fontSize: 18,
-                      fontFamily: 'Roboto',
-                      fontWeight: FontWeight.w700,
-                      height: 0,
+                  Flexible(
+                    child: Container(
+                      width: 240,
+                      child: Text(
+                        widget.weatherData.cityName,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        softWrap: false,
+                        style: const TextStyle(
+                          color: Color(0xFF211772),
+                          fontSize: 18,
+                          fontFamily: 'Roboto',
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Text(
-                    'Sun, November 16',
+                    AppHelpers.changeDateFormat(
+                        dateString: widget
+                            .weatherData.dailyWeatherCondition.first.date),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Color(0xFF575757),
                       fontSize: 12,
                       fontFamily: 'Roboto',
@@ -57,7 +79,20 @@ class WeatherScreen extends StatelessWidget {
                   )
                 ],
               ),
-              SvgPicture.asset(favoritIcon)
+              IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _isFavorite = true;
+                    });
+                    context.read<WeatherBloc>().add(SaveFavoriteWeatherData(
+                        weatherModel: widget.weatherData));
+                  },
+                  icon: _isFavorite
+                      ? const Icon(
+                          Icons.favorite,
+                          color: Colors.red,
+                        )
+                      : const Icon(Icons.favorite_border))
             ],
           ),
         ),
@@ -70,9 +105,9 @@ class WeatherScreen extends StatelessWidget {
             const SizedBox(height: 16),
             Center(child: SvgPicture.asset(rainyWeatherIcon)),
             const SizedBox(height: 7),
-            const Text(
-              'Mostly Sunny',
-              style: TextStyle(
+            Text(
+              widget.weatherData.weatherDescription,
+              style: const TextStyle(
                 color: Color(0xFF9E93FF),
                 fontSize: 24,
                 fontFamily: 'Roboto',
@@ -84,9 +119,9 @@ class WeatherScreen extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  '30',
-                  style: TextStyle(
+                Text(
+                  widget.weatherData.dailyWeatherCondition.first.maxTemperature,
+                  style: const TextStyle(
                     color: Color(0xFF211772),
                     fontSize: 72,
                     fontFamily: 'Roboto',
@@ -141,18 +176,22 @@ class WeatherScreen extends StatelessWidget {
               Container(
                 height: 200,
                 child: ListView.builder(
-                  itemCount: listDateTimes.length,
+                  itemCount: widget.weatherData.dailyWeatherCondition.length,
                   itemBuilder: (context, index) {
-                    var date = listDateTimes[index];
-
+                    var dailyWeatherData =
+                        widget.weatherData.dailyWeatherCondition[index];
+                    if (index == 0) {
+                      return const SizedBox.shrink();
+                    }
                     return Padding(
                       padding: const EdgeInsets.only(top: 23.0),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Mon, Nov 17',
-                            style: TextStyle(
+                          Text(
+                            AppHelpers.abbreviatedDateFormt(
+                                dateString: dailyWeatherData.date),
+                            style: const TextStyle(
                               color: Color(0xFFD8D8D8),
                               fontSize: 12,
                               fontFamily: 'Roboto',
@@ -163,9 +202,9 @@ class WeatherScreen extends StatelessWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text(
-                                '33',
-                                style: TextStyle(
+                              Text(
+                                '${dailyWeatherData.maxTemperature}°',
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 14,
                                   fontFamily: 'Roboto',
@@ -174,9 +213,9 @@ class WeatherScreen extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(width: 23),
-                              const Text(
-                                '24',
-                                style: TextStyle(
+                              Text(
+                                '${dailyWeatherData.minTemperature}°',
+                                style: const TextStyle(
                                   color: Color(0xFFD8D8D8),
                                   fontSize: 14,
                                   fontFamily: 'Roboto',
@@ -185,7 +224,10 @@ class WeatherScreen extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(width: 28),
-                              SvgPicture.asset(mostlySunny),
+                              Image.network(
+                                dailyWeatherData.weatherIconUrl,
+                                height: 20,
+                              ),
                             ],
                           )
                         ],
